@@ -37,6 +37,11 @@ class Crop
     private $maxHeight;
 
     /**
+     * @var int
+     */
+    private $rotate;
+
+    /**
      * @Assert\NotBlank()
      *
      * @Assert\Type("array")
@@ -46,6 +51,7 @@ class Crop
         'y' => 0,
         'width' => null,
         'height' => null,
+        'rotate' => 0,
     ];
 
     public function __construct(ImageManager $imageManager, string $filename)
@@ -54,8 +60,11 @@ class Crop
         $this->filename = $filename;
     }
 
-    public function getCroppedThumbnail(int $maxWidth, int $maxHeight, string $format = 'jpg', int $quality = 80): string
+    public function getCroppedThumbnail(int $maxWidth, int $maxHeight, string $format = 'jpg', int $quality = 80, bool $applyRotation = false): string
     {
+        if (\func_num_args() < 5) {
+            trigger_deprecation('symfony/ux-cropperjs', '2.0', 'Calling "%s()" without $applyRotation is deprecated and will default to true in 3.0', __METHOD__);
+        }
         $image = $this->createCroppedImage();
 
         $image->resize($maxWidth, $maxHeight, static function ($constraint) {
@@ -63,13 +72,20 @@ class Crop
             $constraint->upsize();
         });
 
+        if ($this->options['rotate'] !== 0 && $applyRotation) {
+            $image->rotate(-1 * $this->options['rotate']);
+        }
+
         $image->encode($format, $quality);
 
         return $image->getEncoded();
     }
 
-    public function getCroppedImage(string $format = 'jpg', int $quality = 80): string
+    public function getCroppedImage(string $format = 'jpg', int $quality = 80, bool $applyRotation = false): string
     {
+        if (\func_num_args() < 3) {
+            trigger_deprecation('symfony/ux-cropperjs', '2.0', 'Calling "%s()" without $applyRotation is deprecated and will default to true in 3.0', __METHOD__);
+        }
         $image = $this->createCroppedImage();
 
         // Max size
@@ -78,6 +94,10 @@ class Crop
                 $constraint->aspectRatio();
                 $constraint->upsize();
             });
+        }
+
+        if ($this->options['rotate'] !== 0 && $applyRotation) {
+            $image->rotate(-1 * $this->options['rotate']);
         }
 
         $image->encode($format, $quality);
